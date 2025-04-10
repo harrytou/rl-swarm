@@ -10,7 +10,7 @@ const uiConfig: AlchemyAccountsUIConfig = {
   illustrationStyle: "outline",
   auth: {
     sections: [
-      [{ type: "email" }],
+      [{ type: "email", emailMode: "otp" }],
       [
         { type: "passkey" },
         { type: "social", authProviderId: "google", mode: "popup" },

@@ -12,6 +12,7 @@ from hivemind_exp.chain_utils import (
 )
 from hivemind_exp.runner.grpo_runner import GRPOArguments, GRPORunner
 from hivemind_exp.trainer.gensyn.testnet_grpo_trainer import TestnetGRPOTrainer
+from hivemind.p2p.p2p_daemon import P2PDaemonError
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class TestnetGRPORunner(GRPORunner):
             try:
                 dht = hivemind.DHT(start=True, **self._dht_kwargs(grpo_args))
                 break
-            except hivemind.P2PDaemonError as e:
+            except P2PDaemonError as e:
                 logger.warning(f"Failed to start DHT: {e}")
                 if i == 4:
                     raise e

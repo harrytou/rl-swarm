@@ -41,7 +41,6 @@ echo "USER_DATA_SUFFIX set to: $USER_DATA_SUFFIX"
 
 cd "$ROOT"/modal-login || exit
 yarn install
-yarn build
 PORT=$API_PORT USER_DATA_SUFFIX=$USER_DATA_SUFFIX yarn start > "$ROOT"/login-server-"${USER_DATA_SUFFIX}".log 2>&1 &
 SERVER_PID=$!
 echo "Server PID: $SERVER_PID" > "$ROOT"/server_pid-"${USER_DATA_SUFFIX}".txt

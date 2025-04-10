@@ -115,7 +115,6 @@ trap cleanup INT TERM
 
 # Default GPU_ID is 0 unless specified as first argument
 GPU_ID="${1:-0}"
-
 echo ">>> Running script for GPU=$GPU_ID ..."
 
 # 1) Set up environment for this GPU

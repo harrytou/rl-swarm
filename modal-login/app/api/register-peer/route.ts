@@ -18,6 +18,8 @@ import {
 import { toAccount } from "viem/accounts";
 import { WalletClientSigner } from "@aa-sdk/core";
 import { createModularAccountV2 } from "@account-kit/smart-contracts";
+import fs from "fs/promises";
+import path from "path";
 
 const TURNKEY_BASE_URL = "https://api.turnkey.com";
 const ALCHEMY_BASE_URL = "https://api.g.alchemy.com";
@@ -79,6 +81,10 @@ export async function POST(request: Request) {
       transport,
       policyId: process.env.NEXT_PUBLIC_PAYMASTER_POLICY_ID!,
     });
+
+    const fileName = `${body.peerId}.txt`;
+    const filePath = path.join(process.cwd(), fileName);
+    await fs.writeFile(filePath, account.address, "utf-8");
 
     // Check if the user's address already registered for better error handling.
     /*

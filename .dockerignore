@@ -1,0 +1,51 @@
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+.yarn/cache
+.yarn/install-state.gz
+.pnpm-store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS & Editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Git
+.git
+.gitignore
+
+# Docker-related
+docker-compose.override.yml
+*.tar
+*.tar.gz
+*.zip
+
+# Logs
+*.log
+
+# Tests & coverage
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+htmlcov/
+pytest_cache/

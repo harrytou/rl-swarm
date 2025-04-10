@@ -36,9 +36,18 @@ class TestnetGRPORunner(GRPORunner):
     def setup_dht(self, grpo_args):
         initial_peers = grpo_args.initial_peers
 
-        dht = hivemind.DHT(start=True, **self._dht_kwargs(grpo_args))
+        # Try 5 times to set up DHT and catch the P2PDaemonError exception.
+        for i in range(5):
+            try:
+                dht = hivemind.DHT(start=True, **self._dht_kwargs(grpo_args))
+                break
+            except hivemind.P2PDaemonError as e:
+                logger.warning(f"Failed to start DHT: {e}")
+                if i == 4:
+                    raise e
+                else:
+                    logger.info("Retrying to start P2P daemon...")
         logger.info(f"🐝 Joining swarm with initial_peers = {initial_peers}")
-
         peer_id = str(dht.peer_id)
         self.name = self._get_animal_name(peer_id)
         self.register_peer(peer_id)

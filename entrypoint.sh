@@ -11,4 +11,4 @@ fi
 # Start SSH daemon
 service ssh start
 
-/bin/bash -c "exec $@"
+exec "$@"

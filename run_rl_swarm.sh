@@ -32,9 +32,15 @@ cleanup() {
 }
 trap cleanup INT
 
-# Default GPU_ID is 0 unless specified as first argument
-GPU_ID="${1:-0}"
+# Will ignore any visible GPUs if set.
+CPU_ONLY=${CPU_ONLY:-""}
 
+# Set if successfully parsed from modal-login/temp-data/userData.json.
+ORG_ID=${ORG_ID:-""}
+
+GREEN_TEXT="\033[32m"
+RESET_TEXT="\033[0m"
+GPU_ID="$1"
 echo ">>> Running script for GPU=$GPU_ID ..."
 
 # 1) Set up environment for this GPU

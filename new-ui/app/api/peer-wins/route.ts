@@ -64,7 +64,7 @@ async function fetchBlockchainData(peerIds: string[]) {
   }));
 
   // Fetch total wins for each peer ID - one at a time to avoid rate limiting
-  const wins = [];
+  const wins: any[] = [];
   for (const peerId of peerIds) {
     // Add a small delay between requests to avoid rate limiting
     await sleep(300);

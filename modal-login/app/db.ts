@@ -4,8 +4,9 @@
 import fs from "fs";
 import path from "path";
 
-const userDataPath = path.join(process.cwd(), "./temp-data/userData.json");
-const apiKeyPath = path.join(process.cwd(), "./temp-data/userApiKey.json");
+const suffix = process.env.USER_DATA_SUFFIX || '';
+const userDataPath = path.join(process.cwd(), `./temp-data/userData-${suffix}.json`);
+const apiKeyPath = path.join(process.cwd(), `./temp-data/userApiKey-${suffix}.json`);
 
 const readJson = (filePath: string): any => {
   if (!fs.existsSync(filePath)) {

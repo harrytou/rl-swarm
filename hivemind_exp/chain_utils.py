@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 from abc import ABC
@@ -16,7 +17,8 @@ SWARM_COORDINATOR_ABI_JSON = (
 )
 SWARM_COORDINATOR_CONTRACT = "0x2fC68a233EF9E9509f034DD551FF90A79a0B8F82"
 
-MODAL_PROXY_URL = "http://localhost:3000/api/"
+MODAL_LOGIN_PORT = os.getenv("MODAL_LOGIN_PORT", "3000")
+MODAL_PROXY_URL = f"http://localhost:{MODAL_LOGIN_PORT}/api/"
 
 logger = logging.getLogger(__name__)
 

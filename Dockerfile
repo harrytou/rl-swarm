@@ -74,6 +74,7 @@ pip install --no-cache-dir -r requirements_gpu.txt
 COPY modal-login ./modal-login
 WORKDIR /app/modal-login
 RUN yarn install
+RUN yarn build
 
 WORKDIR /app
 

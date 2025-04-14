@@ -15,6 +15,19 @@ from hivemind_exp.runner.gensyn.testnet_grpo_runner import (
 )
 from hivemind_exp.runner.grpo_runner import GRPOArguments, GRPORunner
 
+import signal
+import sys
+
+
+def handle_termination(signum, frame):
+    logging.info(f"Received signal {signum}. Cleaning up...")
+    # Insert any cleanup logic here (e.g., save model state, disconnect swarm, etc.)
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, handle_termination)
+signal.signal(signal.SIGTERM, handle_termination)
+
 
 def main():
     # Setup logging.

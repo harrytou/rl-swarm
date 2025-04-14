@@ -29,6 +29,7 @@ HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
 cleanup() {
     echo "Cleaning up script. Any running screens remain unless manually closed."
+    kill $SERVER_PID || true
     exit 0
 }
 trap cleanup INT
@@ -49,7 +50,6 @@ echo "USER_DATA_SUFFIX set to: $USER_DATA_SUFFIX"
 
 cd "$ROOT"/modal-login || exit
 yarn install
-yarn build
 PORT=$API_PORT USER_DATA_SUFFIX=$USER_DATA_SUFFIX yarn start > "$ROOT"/login-server-"${USER_DATA_SUFFIX}".log 2>&1 &
 SERVER_PID=$!
 echo "Server PID: $SERVER_PID" > "$ROOT"/server_pid-"${USER_DATA_SUFFIX}".txt
@@ -94,7 +94,8 @@ fi
 PORT=$((38331 + GPU_ID))
 PEER_IDENTITY="swarm_${GPU_ID}.pem"
 echo ">>> Launching Peer on GPU=$GPU_ID, port=$PORT, identity=$PEER_IDENTITY"
-IDENTITY_PATH="$ROOT/${PEER_IDENTITY}"
+mkdir -p "$ROOT/persist"
+IDENTITY_PATH="$ROOT/persist/${PEER_IDENTITY}"
 
 python3 -m hivemind_exp.gsm8k.train_single_gpu \
         --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \

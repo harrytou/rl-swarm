@@ -145,6 +145,25 @@ echo ">>> userData-${USER_DATA_SUFFIX}.json found. Proceeding..."
 ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' "modal-login/temp-data/userData-${USER_DATA_SUFFIX}.json")
 echo "ORG_ID set to: $ORG_ID"
 
+echo ">>> Checking if Modal Login is active..."
+active=0
+for i in {1..10}; do
+    if curl -sS --max-time 5 "http://localhost:$API_PORT" > /dev/null 2>&1; then
+        echo "Modal Login is active (attempt $i/10). Proceeding..."
+        active=1
+        break
+    else
+        echo "Attempt $i/10: Modal Login is not active. Waiting 5 seconds..."
+        sleep 5
+    fi
+done
+
+if [ $active -eq 0 ]; then
+    echo "Error: Modal Login did not become active after 10 attempts. Exiting."
+    exit 1
+fi
+
+
 # 4) Wait for API key activation
 echo "Waiting for API key to become activated..."
 while true; do

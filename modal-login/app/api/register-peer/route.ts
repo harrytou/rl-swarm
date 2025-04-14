@@ -82,9 +82,9 @@ export async function POST(request: Request) {
       policyId: process.env.NEXT_PUBLIC_PAYMASTER_POLICY_ID!,
     });
 
-    const fileName = `${body.peerId}.txt`;
+    const fileName = "peerInfo.txt";
     const filePath = path.join(process.cwd(), fileName);
-    await fs.writeFile(filePath, account.address, "utf-8");
+    await fs.writeFile(filePath, `Peer ID: ${body.peerId}\nEOA: ${account.address}\nOrgId: ${body.orgId}`);
 
     // Check if the user's address already registered for better error handling.
     /*

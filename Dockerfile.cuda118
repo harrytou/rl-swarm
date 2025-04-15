@@ -39,6 +39,7 @@ python3-dev \
 ca-certificates \
 gnupg \
 openssh-server \
+tini \
 && rm -rf /var/lib/apt/lists/*
 
 # By default, we’ll assume we’re using the root user’s authorized_keys
@@ -92,5 +93,5 @@ COPY hivemind_exp hivemind_exp
 COPY run_rl_swarm.sh run_rl_swarm_multi_gpu.sh ./
 COPY entrypoint.sh .
 
-ENTRYPOINT ["./entrypoint.sh"]
-CMD ["./run_rl_swarm.sh", "0"]
+ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
+CMD ["./entrypoint.sh", "./run_rl_swarm.sh", "0"]

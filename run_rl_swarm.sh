@@ -106,7 +106,6 @@ cleanup() {
         fi
     fi
 
-    kill $SERVER_PID || true
     exit 0
 }
 trap cleanup INT TERM

@@ -27,6 +27,9 @@ PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
+# Will ignore any visible GPUs if set.
+CPU_ONLY=${CPU_ONLY:-""}
+
 # Function to parse peer ID from peerInfo.txt file
 get_peer_id() {
     local file_path="$1"

@@ -93,5 +93,5 @@ COPY hivemind_exp hivemind_exp
 COPY run_rl_swarm.sh run_rl_swarm_multi_gpu.sh ./
 COPY entrypoint.sh .
 
-ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
+ENTRYPOINT ["/usr/bin/tini", "-g", "-s", "--"]
 CMD ["./entrypoint.sh", "./run_rl_swarm.sh", "0"]

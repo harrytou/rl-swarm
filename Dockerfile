@@ -71,6 +71,14 @@ RUN pip install --no-cache-dir -r requirements-hivemind.txt && \
 pip install --no-cache-dir -r requirements.txt && \
 pip install --no-cache-dir -r requirements_gpu.txt
 
+# Declare build-time args
+ARG NEXT_PUBLIC_PAYMASTER_POLICY_ID
+ARG NEXT_PUBLIC_ALCHEMY_API_KEY
+
+# Make them available as environment vars during build
+ENV NEXT_PUBLIC_PAYMASTER_POLICY_ID=$NEXT_PUBLIC_PAYMASTER_POLICY_ID
+ENV NEXT_PUBLIC_ALCHEMY_API_KEY=$NEXT_PUBLIC_ALCHEMY_API_KEY
+
 # Install yarn dependencies in modal-login directory
 COPY modal-login ./modal-login
 WORKDIR /app/modal-login

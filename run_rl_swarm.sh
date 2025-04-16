@@ -137,14 +137,14 @@ cd "$ROOT"
 echo "Please login at http://localhost:$API_PORT to create an Ethereum Server Wallet"
 
 # 2) Wait for userData-${GPU_ID}.json
-while [ ! -f "modal-login/temp-data/userData-${USER_DATA_SUFFIX}.json" ]; do
+while [ ! -f "persist/userData-${USER_DATA_SUFFIX}.json" ]; do
     echo "Waiting for userData-${USER_DATA_SUFFIX}.json to be created. Once you've logged in, it appears."
     sleep 5
 done
 echo ">>> userData-${USER_DATA_SUFFIX}.json found. Proceeding..."
 
 # 3) Extract ORG_ID
-ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' "modal-login/temp-data/userData-${USER_DATA_SUFFIX}.json")
+ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' "persist/userData-${USER_DATA_SUFFIX}.json")
 echo "ORG_ID set to: $ORG_ID"
 
 echo ">>> Checking if Modal Login is active..."

@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path: Gensyn/Qwen2.5-0.5B-Instruct
+model_name_or_path: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
 bf16: true
 tf32: true
-output_dir: runs/gsm8k/multinode/Qwen2.5-0.5B-Instruct-Gensyn-Swarm
+output_dir: runs/gsm8k/multinode/DeepSeek-R1-Distill-Qwen-1.5B-Gensyn-Swarm
 
 # Dataset arguments
 dataset_id_or_path: 'openai/gsm8k'

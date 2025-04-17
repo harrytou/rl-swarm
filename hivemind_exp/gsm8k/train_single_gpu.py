@@ -33,11 +33,20 @@ def main():
     # Setup logging.
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(
+
+    # Console handler with color formatting
+    console_handler = colorlog.StreamHandler()
+    console_handler.setFormatter(
         colorlog.ColoredFormatter("%(green)s%(levelname)s:%(name)s:%(message)s")
     )
-    root_logger.addHandler(handler)
+    root_logger.addHandler(console_handler)
+
+    # File handler
+    file_handler = logging.FileHandler('training.log')
+    file_handler.setFormatter(
+        logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+    )
+    root_logger.addHandler(file_handler)
 
     parser = TrlParser((ModelConfig, GRPOArguments, TestnetGRPOArguments, GRPOConfig))  # type: ignore
     model_args, grpo_args, testnet_args, training_args = parser.parse_args_and_config()

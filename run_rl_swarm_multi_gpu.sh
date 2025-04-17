@@ -30,6 +30,7 @@ source "$ROOT/.venv/bin/activate"
 echo ">>> Installing Python requirements..."
 pip install -r "$ROOT/requirements-hivemind.txt" > /dev/null
 pip install -r "$ROOT/requirements.txt" > /dev/null
+pip install -r "$ROOT/requirements_gpu.txt" > /dev/null
 echo -e ">>> Done installing!\n"
 
 # ------------------------------------------------------------------------------

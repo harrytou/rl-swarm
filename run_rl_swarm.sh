@@ -198,6 +198,6 @@ python3 -m hivemind_exp.gsm8k.train_single_gpu \
         --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
         --identity_path "$IDENTITY_PATH" \
         --modal_org_id "$ORG_ID" \
-        --config "$CONFIG_PATH"
+        --config "$CONFIG_PATH" 2>&1 | tee "$ROOT/persist/rl_swarm_${TIMESTAMP}_gpu${GPU_ID:-0}.log"
 
 wait

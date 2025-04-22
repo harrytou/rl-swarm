@@ -90,9 +90,11 @@ class HivemindGRPOTrainer:
                 )
 
                 if self.node.stage_num == 1:
-                    self.stage_rewards += (sum(self.node.rewards) * 10)
+                    self.stage_rewards += abs(sum(self.node.rewards) * 100)
+                    self.logger.info(f"Stage 1 rewards (x100): {self.stage_rewards}")
                 else:
                     self.stage_rewards += sum(self.node.rewards)
+                self.logger.info(f"Storing Stage {self.node.stage_num} rewards to DHT: {self.stage_rewards}")
                 self.dht.store(
                     key=rewards_key(self.node.round_num, self.node.stage_num),
                     subkey=self.node.key,

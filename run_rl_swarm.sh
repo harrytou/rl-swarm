@@ -192,6 +192,7 @@ PORT=$((38331 + GPU_ID))
 PEER_IDENTITY="swarm_${GPU_ID}.pem"
 echo ">>> Launching Peer on GPU=$GPU_ID, port=$PORT, identity=$PEER_IDENTITY"
 mkdir -p "$ROOT/persist"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 IDENTITY_PATH="$ROOT/persist/${PEER_IDENTITY}"
 
 python3 -m hivemind_exp.gsm8k.train_single_gpu \

@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 from abc import ABC
@@ -15,7 +16,8 @@ SWARM_COORDINATOR_ABI_JSON = (
     f"hivemind_exp/contracts/SwarmCoordinator_{SWARM_COORDINATOR_VERSION}.json"
 )
 
-MODAL_PROXY_URL = "http://localhost:3000/api/"
+MODAL_LOGIN_PORT = os.getenv("MODAL_LOGIN_PORT", "3000")
+MODAL_PROXY_URL = f"http://localhost:{MODAL_LOGIN_PORT}/api/"
 
 logger = logging.getLogger(__name__)
 

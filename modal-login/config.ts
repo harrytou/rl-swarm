@@ -1,6 +1,5 @@
 import {
   AlchemyAccountsUIConfig,
-  cookieStorage,
   createConfig,
 } from "@account-kit/react";
 import { alchemy, sepolia } from "@account-kit/infra";
@@ -11,7 +10,7 @@ const uiConfig: AlchemyAccountsUIConfig = {
   illustrationStyle: "outline",
   auth: {
     sections: [
-      [{ type: "email" }],
+      [{ type: "email", emailMode: "otp" }],
       [
         { type: "passkey" },
         { type: "social", authProviderId: "google", mode: "popup" },
@@ -25,6 +24,7 @@ const uiConfig: AlchemyAccountsUIConfig = {
 
 export const config = createConfig(
   {
+    // @ts-ignore – Type mismatch due to duplicated infra packages
     transport: alchemy({ apiKey: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY! }), // TODO: add your Alchemy API key - https://dashboard.alchemy.com/accounts
     chain: sepolia,
     ssr: true, // more about ssr: https://accountkit.alchemy.com/react/ssr

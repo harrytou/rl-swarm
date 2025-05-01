@@ -9,7 +9,8 @@ export PUB_MULTI_ADDRS
 export PEER_MULTI_ADDRS
 export HOST_MULTI_ADDRS
 export IDENTITY_PATH
-export CONNECT_TO_TESTNET
+export CONNECT_TO_TESTNET="True"
+export HUGGINGFACE_ACCESS_TOKEN="None"
 export ORG_ID
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 
@@ -53,12 +54,86 @@ echo_blue() {
 
 ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 
+# Function to parse peer ID from peerInfo.txt file
+get_peer_id() {
+    local file_path="$1"
+    if [ -f "$file_path" ]; then
+        # Extract the peer ID from the file (format: "Peer ID: XXXX")
+        local peer_id=$(grep -o "Peer ID: [^ ]*" "$file_path" | cut -d' ' -f3)
+        echo "$peer_id"
+    else
+        echo "Peer ID file not found: $file_path"
+        return 1
+    fi
+}
+
+# Function to send Slack notification with peer ID
+send_slack_notification() {
+    local peer_id="$1"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+    if [ -z "$SLACK_WEBHOOK_URL" ]; then
+        echo "SLACK_WEBHOOK_URL is not set. Skipping Slack notification."
+        return 1
+    fi
+
+    local payload=$(cat <<-'JSONPAYLOAD'
+    {
+    	"blocks": [
+    		{
+    			"type": "header",
+    			"text": {
+    				"type": "plain_text",
+    				"text": "🛑 RL Swarm Peer Disconnected",
+    				"emoji": true
+    			}
+    		},
+    		{
+    			"type": "section",
+    			"text": {
+    				"type": "mrkdwn",
+    				"text": "A peer node has *exited* the swarm. Below are the details:"
+    			}
+    		},
+    		{
+    			"type": "divider"
+    		},
+    		{
+    			"type": "section",
+    			"text": {
+    				"type": "mrkdwn",
+    				"text": "*Peer ID:* `__PEER_ID__`\n *Timestamp*: `__TIMESTAMP__`"
+    			}
+    		}
+    	]
+    }
+JSONPAYLOAD
+    )
+    # Then manually replace placeholders in `payload`:
+    payload="${payload/__PEER_ID__/$peer_id}"
+    payload="${payload/__TIMESTAMP__/$timestamp}"
+
+    # Send to Slack
+    curl -s -X POST \
+        -H 'Content-type: application/json' \
+        --data "${payload}" \
+        "${SLACK_WEBHOOK_URL}"
+}
+
+
 # Function to clean up the server process upon exit
 cleanup() {
-    echo_green ">> Shutting down trainer..."
+    echo_green ">> Cleaning up script. Any running screens remain unless manually closed."
 
-    # Remove modal credentials if they exist
-    rm -r $ROOT_DIR/modal-login/temp-data/*.json 2> /dev/null || true
+    # Check for peerInfo.txt and send notification if it exists
+    PEER_INFO_FILE="$ROOT/modal-login/peerInfo.txt"
+    if [ -f "$PEER_INFO_FILE" ]; then
+        PEER_ID=$(get_peer_id "$PEER_INFO_FILE")
+        if [ -n "$PEER_ID" ]; then
+            echo "Sending Slack notification with Peer ID: $PEER_ID"
+            send_slack_notification "$PEER_ID"
+        fi
+    fi
 
     # Kill all processes belonging to this script's process group
     kill -- -$$ || true
@@ -80,125 +155,78 @@ cat << "EOF"
 
 EOF
 
-while true; do
-    echo -en $GREEN_TEXT
-    read -p ">> Would you like to connect to the Testnet? [Y/n] " yn
-    echo -en $RESET_TEXT
-    yn=${yn:-Y}  # Default to "Y" if the user presses Enter
-    case $yn in
-        [Yy]*)  CONNECT_TO_TESTNET=true && break ;;
-        [Nn]*)  CONNECT_TO_TESTNET=false && break ;;
-        *)  echo ">>> Please answer yes or no." ;;
-    esac
+# Default GPU_ID is 0 unless specified as first argument
+GPU_ID="${1:-0}"
+
+echo ">>> Running script for GPU=$GPU_ID ..."
+
+# 1) Set up environment for this GPU
+export CUDA_VISIBLE_DEVICES=$GPU_ID
+API_PORT=$((3000 + GPU_ID))
+export MODAL_LOGIN_PORT=$API_PORT
+USER_DATA_SUFFIX=$GPU_ID
+
+echo ">>> Starting login server on port $API_PORT..."
+echo "USER_DATA_SUFFIX set to: $USER_DATA_SUFFIX"
+
+cd "$ROOT"/modal-login || exit
+yarn install
+PORT=$API_PORT USER_DATA_SUFFIX=$USER_DATA_SUFFIX yarn start > "$ROOT"/login-server-"${USER_DATA_SUFFIX}".log 2>&1 &
+SERVER_PID=$!
+echo "Server PID: $SERVER_PID" > "$ROOT"/server_pid-"${USER_DATA_SUFFIX}".txt
+cd "$ROOT"
+
+echo "Please login at http://localhost:$API_PORT to create an Ethereum Server Wallet"
+
+# 2) Wait for userData-${GPU_ID}.json
+while [ ! -f "persist/userData-${USER_DATA_SUFFIX}.json" ]; do
+    echo "Waiting for userData-${USER_DATA_SUFFIX}.json to be created. Once you've logged in, it appears."
+    sleep 5
+done
+echo ">>> userData-${USER_DATA_SUFFIX}.json found. Proceeding..."
+
+# 3) Extract ORG_ID
+ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' "persist/userData-${USER_DATA_SUFFIX}.json")
+echo "ORG_ID set to: $ORG_ID"
+
+echo ">>> Checking if Modal Login is active..."
+active=0
+for i in {1..10}; do
+    if curl -sS --max-time 5 "http://localhost:$API_PORT" > /dev/null 2>&1; then
+        echo "Modal Login is active (attempt $i/10). Proceeding..."
+        active=1
+        break
+    else
+        echo "Attempt $i/10: Modal Login is not active. Waiting 5 seconds..."
+        sleep 5
+    fi
 done
 
+if [ $active -eq 0 ]; then
+    echo "Error: Modal Login did not become active after 10 attempts. Exiting."
+    exit 1
+fi
+
+
+# 4) Wait for API key activation
+echo "Waiting for API key to become activated..."
 while true; do
-    echo -en $GREEN_TEXT
-    read -p ">> Which swarm would you like to join (Math (A) or Math Hard (B))? [A/b] " ab
-    echo -en $RESET_TEXT
-    ab=${ab:-A}  # Default to "A" if the user presses Enter
-    case $ab in
-        [Aa]*)  USE_BIG_SWARM=false && break ;;
-        [Bb]*)  USE_BIG_SWARM=true && break ;;
-        *)  echo ">>> Please answer A or B." ;;
-    esac
+    STATUS=$(curl -s "http://localhost:$API_PORT/api/get-api-key-status?orgId=$ORG_ID")
+    if [[ "$STATUS" == "activated" ]]; then
+        echo "API key is activated! Proceeding..."
+        break
+    else
+        echo "Waiting for API key to be activated..."
+        sleep 5
+    fi
 done
+
 if [ "$USE_BIG_SWARM" = true ]; then
     SWARM_CONTRACT="$BIG_SWARM_CONTRACT"
 else
     SWARM_CONTRACT="$SMALL_SWARM_CONTRACT"
 fi
-while true; do
-    echo -en $GREEN_TEXT
-    read -p ">> How many parameters (in billions)? [0.5, 1.5, 7, 32, 72] " pc
-    echo -en $RESET_TEXT
-    pc=${pc:-0.5}  # Default to "0.5" if the user presses Enter
-    case $pc in
-        0.5 | 1.5 | 7 | 32 | 72) PARAM_B=$pc && break ;;
-        *)  echo ">>> Please answer in [0.5, 1.5, 7, 32, 72]." ;;
-    esac
-done
 
-if [ "$CONNECT_TO_TESTNET" = true ]; then
-    # Run modal_login server.
-    echo "Please login to create an Ethereum Server Wallet"
-    cd modal-login
-    # Check if the yarn command exists; if not, install Yarn.
-
-    # Node.js + NVM setup
-    if ! command -v node > /dev/null 2>&1; then
-        echo "Node.js not found. Installing NVM and latest Node.js..."
-        export NVM_DIR="$HOME/.nvm"
-        if [ ! -d "$NVM_DIR" ]; then
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-        fi
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        nvm install node
-    else
-        echo "Node.js is already installed: $(node -v)"
-    fi
-
-    if ! command -v yarn > /dev/null 2>&1; then
-        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
-        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
-            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-            sudo apt update && sudo apt install -y yarn
-        else
-            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
-            # This lands in $NVM_DIR/versions/node/<ver>/bin which is already on PATH
-            npm install -g --silent yarn
-        fi
-    fi
-    yarn install
-    yarn dev > /dev/null 2>&1 & # Run in background and suppress output
-
-    SERVER_PID=$!  # Store the process ID
-    echo "Started server process: $SERVER_PID"
-    sleep 5
-
-    # Try to open the URL in the default browser
-    if open http://localhost:3000 2> /dev/null; then
-        echo_green ">> Successfully opened http://localhost:3000 in your default browser."
-    else
-        echo ">> Failed to open http://localhost:3000. Please open it manually."
-    fi
-
-    cd ..
-
-    echo_green ">> Waiting for modal userData.json to be created..."
-    while [ ! -f "modal-login/temp-data/userData.json" ]; do
-        sleep 5  # Wait for 5 seconds before checking again
-    done
-    echo "Found userData.json. Proceeding..."
-
-    ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-    echo "Your ORG_ID is set to: $ORG_ID"
-
-    # Wait until the API key is activated by the client
-    echo "Waiting for API key to become activated..."
-    while true; do
-        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
-        if [[ "$STATUS" == "activated" ]]; then
-            echo "API key is activated! Proceeding..."
-            break
-        else
-            echo "Waiting for API key to be activated..."
-            sleep 5
-        fi
-    done
-
-    ENV_FILE="$ROOT"/modal-login/.env
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS version
-        sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
-    else
-        # Linux version
-        sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
-    fi
-fi
 
 echo_green ">> Getting requirements..."
 
@@ -209,13 +237,9 @@ if [ -n "$CPU_ONLY" ] || ! command -v nvidia-smi &> /dev/null; then
     CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml" # TODO: Fix naming.
     GAME="gsm8k"
 else
-    # NVIDIA GPU found
-    pip install -r "$ROOT"/requirements-gpu.txt
-    pip install flash-attn --no-build-isolation
-
     case "$PARAM_B" in
-        32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml" && break ;;
-        0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml" && break ;;
+        32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml";;
+        0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml";;
         *)  echo ">>> Please answer in [0.5, 1.5, 7, 32, 72]." ;;
     esac
     if [ "$USE_BIG_SWARM" = true ]; then
@@ -227,42 +251,20 @@ fi
 
 echo_green ">> Done!"
 
-HF_TOKEN=${HF_TOKEN:-""}
-if [ -n "${HF_TOKEN}" ]; then # Check if HF_TOKEN is already set and use if so. Else give user a prompt to choose.
-    HUGGINGFACE_ACCESS_TOKEN=${HF_TOKEN}
-else
-    echo -en $GREEN_TEXT
-    read -p ">> Would you like to push models you train in the RL swarm to the Hugging Face Hub? [y/N] " yn
-    echo -en $RESET_TEXT
-    yn=${yn:-N} # Default to "N" if the user presses Enter
-    case $yn in
-        [Yy]*) read -p "Enter your Hugging Face access token: " HUGGINGFACE_ACCESS_TOKEN ;;
-        [Nn]*) HUGGINGFACE_ACCESS_TOKEN="None" ;;
-        *) echo ">>> No answer was given, so NO models will be pushed to Hugging Face Hub" && HUGGINGFACE_ACCESS_TOKEN="None" ;;
-    esac
-fi
-
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> Post about rl-swarm on X/twitter! --> https://tinyurl.com/swarmtweet"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
 
-if [ -n "$ORG_ID" ]; then
-    python -m hivemind_exp.gsm8k.train_single_gpu \
+mkdir -p "$ROOT/persist"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+IDENTITY_PATH="$ROOT/persist/swarm.pem"
+
+python3 -m hivemind_exp.gsm8k.train_single_gpu \
         --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
         --identity_path "$IDENTITY_PATH" \
-        --modal_org_id "$ORG_ID" \
         --contract_address "$SWARM_CONTRACT" \
+        --modal_org_id "$ORG_ID" \
         --config "$CONFIG_PATH" \
-        --game "$GAME"
-else
-    python -m hivemind_exp.gsm8k.train_single_gpu \
-        --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
-        --identity_path "$IDENTITY_PATH" \
-        --public_maddr "$PUB_MULTI_ADDRS" \
-        --initial_peers "$PEER_MULTI_ADDRS" \
-        --host_maddr "$HOST_MULTI_ADDRS" \
-        --config "$CONFIG_PATH" \
-        --game "$GAME"
-fi
+        --game "$GAME" 2>&1 | tee "$ROOT/persist/rl_swarm_${TIMESTAMP}_gpu${GPU_ID:-0}.log"
 
 wait  # Keep script running until Ctrl+C

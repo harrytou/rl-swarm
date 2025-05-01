@@ -5,6 +5,10 @@ set -euo pipefail
 # General arguments
 ROOT=$PWD
 
+# Due to error when downloading the large model
+export HF_HUB_ENABLE_HF_TRANSFER=0   # hard-disable the Rust LFS downloader
+export HF_HUB_ENABLE_HF_XET=1        # opt-in to the xet backend
+
 export PUB_MULTI_ADDRS
 export PEER_MULTI_ADDRS
 export HOST_MULTI_ADDRS

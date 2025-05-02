@@ -65,28 +65,32 @@ COPY requirements-gpu.txt ./
 RUN pip install -r requirements-gpu.txt && \
     pip install flash-attn --no-build-isolation
 
-# Declare build-time args
-ARG NEXT_PUBLIC_PAYMASTER_POLICY_ID
-ARG NEXT_PUBLIC_ALCHEMY_API_KEY
-# Which swarm would you like to join (Math (A) or Math Hard (B))? [A/b]
-# Hard is USE_BIG_SWARM=true
-ARG USE_BIG_SWARM=true
-# How many parameters (in billions)? [0.5, 1.5, 7, 32, 72]
-ARG PARAM_B=72
-
-
-# Make them available as environment vars during build
-ENV NEXT_PUBLIC_SMART_CONTRACT_ADDRESS=${USE_BIG_SWARM:+0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58}
-ENV NEXT_PUBLIC_SMART_CONTRACT_ADDRESS=${NEXT_PUBLIC_SMART_CONTRACT_ADDRESS:-0x69C6e1D608ec64885E7b185d39b04B491a71768C}
-ENV NEXT_PUBLIC_PAYMASTER_POLICY_ID=$NEXT_PUBLIC_PAYMASTER_POLICY_ID
-ENV NEXT_PUBLIC_ALCHEMY_API_KEY=$NEXT_PUBLIC_ALCHEMY_API_KEY
-ENV USE_BIG_SWARM=$USE_BIG_SWARM
-ENV PARAM_B=$PARAM_B
-
 # Install yarn dependencies in modal-login directory
 COPY modal-login ./modal-login
 WORKDIR /app/modal-login
 RUN yarn install
+
+# Declare build-time args
+ARG NEXT_PUBLIC_PAYMASTER_POLICY_ID
+ARG NEXT_PUBLIC_ALCHEMY_API_KEY
+ARG SMART_CONTRACT_ADDRESS
+ARG USE_BIG_SWARM=false
+
+
+ENV USE_BIG_SWARM=${USE_BIG_SWARM}
+ENV SMART_CONTRACT_ADDRESS=${SMART_CONTRACT_ADDRESS}
+
+
+# How many parameters (in billions)? [0.5, 1.5, 7, 32, 72]
+ARG PARAM_B=72
+ENV PARAM_B=$PARAM_B
+
+# Make them available as environment vars during build
+ENV NEXT_PUBLIC_PAYMASTER_POLICY_ID=$NEXT_PUBLIC_PAYMASTER_POLICY_ID
+ENV NEXT_PUBLIC_ALCHEMY_API_KEY=$NEXT_PUBLIC_ALCHEMY_API_KEY
+
+RUN sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SMART_CONTRACT_ADDRESS/" .env
+
 RUN yarn build
 
 WORKDIR /app
